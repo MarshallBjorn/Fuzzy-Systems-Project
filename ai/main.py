@@ -1,70 +1,82 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import os
+import csv
 from knn_crisp import CrispKNN
 
+DATASET_NAME = 'iris'
 
-DATA_DIR = '../data'
+TRAIN_FILE = os.path.join('..', 'data', f'{DATASET_NAME}_train.csv')
+TEST_FILE = os.path.join('..', 'data', f'{DATASET_NAME}_test.csv')
 
 
-def generate_mock_data(n_samples=50):
-    """
-    Generuje sztuczne dane:
-    Cecha X: Poziom szumu w dB (np. 40-100 dB)
-    Etykieta y: Poziom głośności nawigacji (0: Cicho, 1: Średnio, 2: Głośno)
-    """
-    np.random.seed(42)
-    X = np.random.uniform(40, 100, n_samples).reshape(-1, 1)
-    y = []
+def load_dataset(filename):
+    if not os.path.exists(filename):
+        print(f"BŁĄD: Nie znaleziono pliku {filename}")
+        return None, None
 
-    for szum in X:
-        if szum < 60:
-            y.append(0)  # Cicho
-        elif szum < 80:
-            y.append(1)  # Średnio
-        else:
-            y.append(2)  # Głośno
+    data_points = []
+    labels = []
 
-    noise_indices = np.random.choice(n_samples, 5, replace=False)
-    y = np.array(y)
-    y[noise_indices] = np.random.randint(0, 3, 5)
+    with open(filename, 'r') as f:
+        reader = csv.reader(f)
+        try:
+            next(reader)
 
-    return X, y
+            for row in reader:
+                if not row: continue
+
+                features = [float(x) for x in row[:-1]]
+                label = float(row[-1])
+
+                data_points.append(features)
+                labels.append(label)
+
+        except ValueError as e:
+            print(f"Błąd parsowania w pliku {filename}. Czy plik ma nagłówek? {e}")
+            return None, None
+
+    return np.array(data_points), np.array(labels)
 
 
 def main():
-    # 1. Przygotowanie danych
-    print("Generowanie danych syntetycznych...")
-    X, y = generate_mock_data(60)
+    print(f"Uruchamianie Crisp k-NN dla zbioru: {DATASET_NAME.upper()} ---")
 
-    # Podział na trening i test (80% / 20%)
-    split_idx = int(0.8 * len(X))
-    X_train, X_test = X[:split_idx], X[split_idx:]
-    y_train, y_test = y[:split_idx], y[split_idx:]
+    # 1. Wczytanie danych
+    print(f"Wczytywanie danych treningowych z: {TRAIN_FILE}")
+    X_train, y_train = load_dataset(TRAIN_FILE)
 
+    print(f"Wczytywanie danych testowych z: {TEST_FILE}")
+    X_test, y_test = load_dataset(TEST_FILE)
+
+    if X_train is None or X_test is None:
+        print("Przerwano z powodu błędu wczytywania danych.")
+        return
+
+    print(f"Wymiary treningowe: {X_train.shape}")
+    print(f"Wymiary testowe: {X_test.shape}")
 
     # 2. Uruchomienie Crisp k-NN
-    k = 5
-    print(f"Uruchamianie Crisp k-NN z k={k}...")
+    k = 3
+    print(f"\nUczenie modelu k-NN (k={k})...")
     knn = CrispKNN(k=k)
     knn.fit(X_train, y_train)
+
+    # 3. Predykcja
+    print("Rozpoczynam klasyfikację zbioru testowego...")
     predictions = knn.predict(X_test)
 
-    # 3. Ewaluacja
+    # 4. Ewaluacja
     accuracy = np.mean(predictions == y_test)
-    print(f"\n--- WYNIKI ---")
-    print(f"Rzeczywiste klasy: {y_test}")
-    print(f"Przewidziane klasy: {predictions}")
-    print(f"Dokładność (Accuracy): {accuracy * 100:.2f}%")
 
-    # 4. Przykładowa predykcja dla konkretnego szumu
-    new_noise = [[55], [75], [95]]  # 55dB, 75dB, 95dB
-    new_preds = knn.predict(new_noise)
-    mapping = {0: "Cicho", 1: "Średnio", 2: "Głośno"}
+    print(f"\n--- WYNIKI ({DATASET_NAME}) ---")
+    print(f"Pierwsze 10 rzeczywistych: {y_test[:10]}")
+    print(f"Pierwsze 10 przewidzianych: {predictions[:10]}")
 
-    print("\n--- TESTY JEDNOSTKOWE ---")
-    for noise, pred in zip(new_noise, new_preds):
-        print(f"Szum: {noise[0]} dB -> Sugerowana głośność: {mapping[pred]}")
+    print(f"\nDokładność (Accuracy): {accuracy * 100:.2f}%")
+
+    # Wyliczanie błędów
+    errors = np.sum(predictions != y_test)
+    print(f"Liczba błędów: {errors} na {len(y_test)} przykładów.")
 
 
 if __name__ == "__main__":
