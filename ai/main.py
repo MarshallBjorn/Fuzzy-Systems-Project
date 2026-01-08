@@ -2,6 +2,7 @@ import numpy as np
 import os
 import csv
 from knn_crisp import CrispKNN
+from knn_fuzzy import FuzzyKNN
 
 DATASET_NAME = 'iris'
 
@@ -56,6 +57,8 @@ def main():
     print(f"Wymiary testowe: {X_test.shape}")
 
     # 2. Uruchomienie Crisp k-NN
+    print("\n=== Getting Crispy... ===")
+
     k = 3
     print(f"\nUczenie modelu k-NN (k={k})...")
     knn = CrispKNN(k=k)
@@ -75,6 +78,38 @@ def main():
     print(f"\nDokładność (Accuracy): {accuracy * 100:.2f}%")
 
     # Wyliczanie błędów
+    errors = np.sum(predictions != y_test)
+    print(f"Liczba błędów: {errors} na {len(y_test)} przykładów.")
+
+    # 3. Uruchomienie Fuzzy k-NN
+    print("\n=== mind? dizzy; vision? blurry; knn? fuzzy; hotel? trivago ===")
+
+    m = 4.0
+    print(f"\nUczenie modelu Fuzzy k-NN (k={k}, m={m})...")
+    knn = FuzzyKNN(k=k, m=m)
+    knn.fit(X_train, y_train)
+
+    # 4. Predykcja
+    print("Rozpoczynam asocjację zbioru testowego...")
+    predictions = knn.predict(X_test)
+
+    # (opcjonalnie) wektory przynależności
+    memberships = knn.predict_membership(X_test)
+
+    # 5. Ewaluacja
+    accuracy = np.mean(predictions == y_test)
+
+    print(f"\n--- WYNIKI FUZZY k-NN ({DATASET_NAME}) ---")
+    print(f"Pierwsze 10 rzeczywistych: {y_test[:10]}")
+    print(f"Pierwsze 10 przewidzianych: {predictions[:10]}")
+
+    print("\nWektory przynależności:")
+    for i, m in enumerate(memberships):
+        print(f"Próbka {i}: {m}")
+
+    print(f"\nDokładność (Accuracy): {accuracy * 100:.2f}%")
+
+    # Liczba błędów
     errors = np.sum(predictions != y_test)
     print(f"Liczba błędów: {errors} na {len(y_test)} przykładów.")
 
