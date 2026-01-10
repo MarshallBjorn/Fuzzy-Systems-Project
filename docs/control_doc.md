@@ -8,7 +8,32 @@ Manualna regulacja głośności podczas jazdy odrywa uwagę i ręce od kierownic
 
 ### 2. Zastosowanie Uogólnień Zbiorów Rozmytych (Teoria)
 
-[Tu miejsce na wsad teoretyczny od TN: Opis Interval Type-2 Fuzzy Logic, definicja Footprint of Uncertainty (FOU) oraz uzasadnienie matematyczne użycia uogólnień.]
+Tradycyjne zbiory rozmyte typu pierwszego (Type-1 Fuzzy Sets) charakteryzują się precyzyjnie zdefiniowanymi funkcjami przynależności, gdzie dla każdego elementu $x$ przypisana jest jedna, konkretna wartość stopnia przynależności $\mu(x) \in [0, 1]$. W rzeczywistych systemach sterowania, takich jak adaptacja głośności w ruchu ulicznym, często mamy do czynienia z niepewnością, której zbiory typu pierwszego nie są w stanie w pełni zamodelować. Źródłami tej niepewności mogą być szumy pomiarowe czujników (np. mikrofonu owiewanego wiatrem) lub subiektywność w definiowaniu pojęć lingwistycznych (np. granica między "cicho" a "umiarkowanie").
+
+Aby rozwiązać ten problem, w projekcie zastosowano **Logikę Rozmytą Typu 2 (Interval Type-2 Fuzzy Logic System - IT2FLS)**.
+
+#### 2.1. Interval Type-2 Fuzzy Sets i Footprint of Uncertainty (FOU)
+
+Zbiór rozmyty typu 2 można interpretować jako zbiór, którego funkcja przynależności jest sama w sobie rozmyta. W przypadku interwałowym (Interval Type-2), stopień przynależności dla danego wejścia nie jest pojedynczą liczbą, lecz przedziałem wartości.
+
+Kluczowym pojęciem jest tutaj **Ślad Niepewności (Footprint of Uncertainty - FOU)**. FOU to obszar ograniczony przez dwie funkcje przynależności typu 1:
+*   **Górna Funkcja Przynależności (Upper Membership Function - UMF),** oznaczana jako $\bar{\mu}(x)$,
+*   **Dolna Funkcja Przynależności (Lower Membership Function - LMF),** oznaczana jako $\underline{\mu}(x)$.
+
+Dla każdego argumentu $x$, stopień przynależności jest przedziałem:
+$$ \mu_{\tilde{A}}(x) = [\underline{\mu}(x), \bar{\mu}(x)] $$
+
+Obszar FOU reprezentuje całą niepewność zawartą w definicji zbioru. Im szerszy FOU, tym większa tolerancja systemu na niedokładności danych wejściowych.
+
+#### 2.2. Uzasadnienie Matematyczne i Praktyczne
+
+Zastosowanie uogólnień w postaci IT2FLS w sterowniku głośności wynika z następujących przesłanek:
+
+1.  **Modelowanie szumu:** W warunkach jazdy rowerem odczyt poziomu hałasu (dB) jest silnie zaszumiony (np. porywy wiatru). W logice typu 1, chwilowa zmiana wartości wejściowej mogłaby spowodować nagłe przełączenie reguły. W logice typu 2, dzięki FOU, małe fluktuacje mieszczą się wewnątrz "grubości" funkcji przynależności, co stabilizuje wyjście sterownika.
+2.  **Gładkość powierzchni sterowania:** Systemy IT2FLS generują zazwyczaj gładsze powierzchnie sterowania w okolicach przełączeń reguł niż systemy typu 1. Wynika to z procesu redukcji typu (Type-Reduction), który uśrednia wnioskowanie z górnych i dolnych funkcji przynależności.
+3.  **Robustness (Odporność):** Matematycznie udowodniono, że systemy IT2FLS potrafią aproksymować złożone funkcje sterowania przy mniejszej liczbie reguł niż systemy typu 1, zachowując przy tym większą odporność na błędy modelowania.
+
+W kontekście projektu, użycie IT2FLS pozwala na uniknięcie zjawiska "skakania" głośności przy niestabilnych odczytach z mikrofonu, co bezpośrednio przekłada się na komfort i bezpieczeństwo użytkownika.
 
 ### 3. Projekt Systemu Sterowania
 
