@@ -1,6 +1,5 @@
 import numpy as np
 
-
 class FuzzyKNN:
     """
     Fuzzy k-NN classifier implementing class membership vectors.

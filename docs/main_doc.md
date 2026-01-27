@@ -28,6 +28,31 @@ Celem projektu jest zaprojektowanie i zaimplementowanie inteligentnego systemu s
 
 Manualna regulacja głośności podczas jazdy odrywa uwagę i ręce od kierownicy, co stwarza bezpośrednie zagrożenie bezpieczeństwa. Klasyczne systemy sterowania (np. liniowe podgłaśnianie w funkcji prędkości) okazują się niewystarczające w sytuacjach nietypowych, takich jak wolna jazda w głośnym korku ulicznym. Z tego względu zaproponowano system adaptacyjny oparty na logice rozmytej, który automatycznie dostosowuje poziom dźwięku, zapewniając słyszalność komunikatów bez generowania "hałasu akustycznego" dla otoczenia.
 
+#### 1.1. Analiza Zmiennych i Uzasadnienie Realizmu Systemu
+
+Projekt systemu sterowania oparto na analizie rzeczywistych warunków eksploatacji jednośladów w ruchu miejskim. Dobór zmiennych wejściowych i wyjściowych wynika z fizyki akustyki oraz specyfiki sterowania sygnałami cyfrowymi.
+
+##### Uzasadnienie doboru zmiennych wejściowych
+1.  **Prędkość (Speed):**
+    * **Fizyka zjawiska:** Jest to główny czynnik generujący tzw. szum opływowy (aerodynamiczny). Przy prędkościach powyżej 20 km/h szum wiatru w uszach rowerzysty staje się dominującym źródłem zakłóceń.
+    * **Dostępność:** Każdy rower elektryczny posiada precyzyjny odczyt prędkości (czujnik Halla), a w aplikacjach mobilnych jest ona pobierana z GPS. Jest to zmienna deterministyczna i łatwo mierzalna.
+
+2.  **Hałas Otoczenia (Noise):**
+    * **Kontekst:** Sama prędkość nie definiuje pełnego tła akustycznego. Rowerzysta może stać w miejscu (0 km/h), ale znajdować się w głośnym środowisku (np. skrzyżowanie). Zmienna ta pozwala systemowi odróżnić jazdę w cichym parku od jazdy wzdłuż arterii komunikacyjnej.
+    * **Pomiar:** Realizowany przez mikrofon próbkujący tło akustyczne w interwałach ciszy między komunikatami.
+
+##### Uzasadnienie zmiennej wyjściowej (Dlaczego skala procentowa?)
+Jako wyjście systemu przyjęto zmienną Volume w znormalizowanym zakresie 0 – 100. Wybór takiej reprezentacji jest podyktowany standardami technologicznymi:
+
+1.  **Zgodność z modulacją PWM (Pulse Width Modulation):**
+    W systemach wbudowanych (embedded), sterowanie mocą urządzeń wykonawczych (w tym głośników/buzzerów) odbywa się poprzez zmianę wypełnienia sygnału prostokątnego. Wartość z logiki rozmytej (np. 75%) jest bezpośrednio mapowana na cykl pracy mikrokontrolera (Duty Cycle = 0.75), co eliminuje konieczność skomplikowanych przeliczeń zmiennoprzecinkowych.
+
+2.  **Abstrakcja sprzętowa (Hardware Abstraction):**
+    Operowanie na procentach uniezależnia algorytm od konkretnego modelu głośnika. Dla algorytmu nie jest istotne, czy system audio ma moc 1W czy 10W – sygnał "100%" oznacza po prostu "maksymalne możliwe wysterowanie wzmacniacza". Pozwala to na portowanie kodu między różnymi platformami sprzętowymi bez zmian w bazie reguł.
+
+3.  **Standardy API Audio:**
+    Większość nowoczesnych bibliotek programistycznych (np. Android AudioManager, HTML5 Audio API, czy biblioteki Pythonowe) przyjmuje wartość głośności jako *float* z zakresu `0.0 - 1.0` lub *int* `0 - 100`. Wyjście sterownika rozmytego jest więc natywnie kompatybilne z interfejsami programistycznymi.
+
 ### 2. Zastosowanie Uogólnień Zbiorów Rozmytych (Teoria)
 
 Tradycyjne zbiory rozmyte typu pierwszego (Type-1 Fuzzy Sets) charakteryzują się precyzyjnie zdefiniowanymi funkcjami przynależności, gdzie dla każdego elementu $x$ przypisana jest jedna, konkretna wartość stopnia przynależności $\mu(x) \in [0, 1]$. W rzeczywistych systemach sterowania, takich jak adaptacja głośności w ruchu ulicznym, często mamy do czynienia z niepewnością, której zbiory typu pierwszego nie są w stanie w pełni zamodelować. Źródłami tej niepewności mogą być szumy pomiarowe czujników (np. mikrofonu owiewanego wiatrem) lub subiektywność w definiowaniu pojęć lingwistycznych (np. granica między "cicho" a "umiarkowanie").
@@ -124,6 +149,23 @@ W celu zbadania globalnej spójności reguł i braku uchybień w logice, wygener
 
 ![image](imgs/plotSurface.png)
 Rys. 2. Powierzchnia sterowania (Control Surface) dla układu Interval Type-2.
+
+#### 4.3. Weryfikacja Techniczna i Możliwości Wdrożeniowe
+
+W kontekście potencjalnego wdrożenia produkcyjnego (Deployment), kluczowa jest weryfikacja sposobu integracji algorytmu sterującego z warstwą sprzętową roweru (hardware). Należy wyjaśnić, w jaki sposób obliczona wartość wyjściowa algorytmu przekłada się na rzeczywiste ciśnienie akustyczne.
+
+**1. Separacja warstwy sterowania od warstwy audio**
+Należy podkreślić, że system Fuzzy Logic **nie przetwarza sygnału audio** (nie modyfikuje plików dźwiękowych), lecz pełni rolę **kontrolera wzmocnienia (Gain Controller)**.
+* **Zasada działania:** Algorytm działa w pętli sterowania, pobierając dane z czujników co określony interwał (np. 100ms). Wynik działania algorytmu (wartość `Volume %` z przedziału 0-100) jest traktowany jako współczynnik wysterowania wzmacniacza.
+* **Implementacja:** W rzeczywistym układzie mikroprocesorowym (np. w liczniku rowerowym), wyjście systemu steruje układem DSP lub bezpośrednio wypełnieniem sygnału PWM (Pulse Width Modulation) podawanego na głośnik. Jest to standardowa technika stosowana w systemach *Speed Sensitive Volume* (znanych z branży Automotive).
+
+**2. Wykonalność obliczeniowa (Real-time feasibility)**
+Czy "w tej formie" (matematyka zbiorów Type-2) system zadziała na tanim procesorze?
+* Obliczenia dla Logiki Rozmytej Typu 2 są bardziej złożone niż dla Typu 1, ale współczesne mikrokontrolery stosowane w e-bike'ach (architektura ARM Cortex-M) posiadają wystarczającą moc obliczeniową.
+* Algorytm nie wymaga buforowania dużych ilości danych – operuje na bieżących próbkach, co oznacza znikome opóźnienie (latencję). Zmiana głośności następuje niemal natychmiastowo po wykryciu zmiany warunków (np. wjechaniu w strefę silnego wiatru), co potwierdza gotowość technologii do pracy w trybie czasu rzeczywistego.
+
+**3. Wniosek wdrożeniowy**
+Zaproponowane rozwiązanie jest w pełni wdrażalne w obecnej formie. System działa jako nadzorca (Supervisor), który dynamicznie ustala poziom głośności dla odtwarzanych komunikatów nawigacji, nie ingerując w sam proces ich generowania. Jest to podejście bezpieczne, energooszczędne i zgodne ze standardami projektowania systemów wbudowanych.
 
 **Wnioski:**
 Wygenerowana powierzchnia sterowania wykazuje cechę monotoniczności oraz gładkości. Nie występują lokalne minima (tzw. "dziury" w sterowaniu), gdzie głośność spadałaby mimo wzrostu parametrów wejściowych. "Płaskowyże" (płaskie obszary na wykresie) wskazują na stabilność systemu w stanach ustalonych, co jest bezpośrednią zasługą zastosowania szerokiego obszaru niepewności (FOU) w logice Type-2.
