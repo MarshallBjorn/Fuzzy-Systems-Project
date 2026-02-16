@@ -40,7 +40,7 @@ def load_dataset(filename):
 
 
 def main():
-    print(f"Uruchamianie Crisp k-NN dla zbioru: {DATASET_NAME.upper()} ---")
+    print(f"Uruchamianie programu dla zbioru: {DATASET_NAME.upper()} ---")
 
     # 1. Wczytanie danych
     print(f"Wczytywanie danych treningowych z: {TRAIN_FILE}")
@@ -57,7 +57,7 @@ def main():
     print(f"Wymiary testowe: {X_test.shape}")
 
     # 2. Uruchomienie Crisp k-NN
-    print("\n=== Getting Crispy... ===")
+    print("\n=== Crisp k-NN ===")
 
     k = 3
     print(f"\nUczenie modelu k-NN (k={k})...")
@@ -71,7 +71,7 @@ def main():
     # 4. Ewaluacja
     accuracy = np.mean(predictions == y_test)
 
-    print(f"\n--- WYNIKI ({DATASET_NAME}) ---")
+    print(f"\n--- WYNIKI CRISP k-NN ({DATASET_NAME}) ---")
     print(f"Pierwsze 10 rzeczywistych: {y_test[:10]}")
     print(f"Pierwsze 10 przewidzianych: {predictions[:10]}")
 
@@ -82,7 +82,7 @@ def main():
     print(f"Liczba błędów: {errors} na {len(y_test)} przykładów.")
 
     # 3. Uruchomienie Fuzzy k-NN
-    print("\n=== mind? dizzy; vision? blurry; knn? fuzzy; hotel? trivago ===")
+    print("\n=== Fuzzy k-NN ===")
 
     m = 4.0
     print(f"\nUczenie modelu Fuzzy k-NN (k={k}, m={m})...")
